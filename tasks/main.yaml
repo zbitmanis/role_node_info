@@ -1,0 +1,65 @@
+---
+- name: Ensure destination path exist
+  ansible.builtin.file:
+    path: '{{ node_info_output_path }}'
+    state: directory
+  become: no
+  delegate_to: 127.0.0.1
+
+- name: Enlist block devices
+  ansible.builtin.command: 'lsblk -af --raw -o +PARTUUID'
+  register: blk_result
+
+- name: Collect infromation about partitions
+  ansible.builtin.command: 'fdisk -l'
+  register: part_result
+
+- name: Collect information about nvme devices
+  ansible.builtin.command: 'nvme list'
+  register: nvme_result
+  
+- name: Collect ns related configuration
+  ansible.builtin.command: 'cat {{ item }}'
+  loop:
+      '{{ node_info_ns_files }}'
+  register: ns_result
+
+- name: Collect interfaces info
+  set_fact: 
+   node_info_interfaces: '{{ node_info_interfaces | default ([]) + [ { "iface": item , "mac": ansible_facts[item].macaddress , "ipv4": ansible_facts[item].ipv4.address | default ("none") , "active": ansible_facts[item].active } ] }}'
+  loop:
+    '{{ ansible_interfaces | reject("search", "lo") }}'
+
+- name: Collect cloud provider ipv4 information from metadata  
+  ansible.builtin.uri: 
+    url: '{{ node_info_metadata_url_interfaces  + item.mac  + "/local-ipv4s" }}'
+    return_content: true 
+  loop:
+    '{{ node_info_interfaces }}'
+  register: iface_metadata 
+
+- name: Collect cloud provider information for block device mapping 
+  ansible.builtin.uri: 
+    url: '{{ node_info_metadata_url_block_device_mapping }}'
+    return_content: true 
+  register: blk_metadata 
+
+
+- name: Store blok device mapping result as fact 
+  set_fact:
+    blk_mapping: '{{ blk_metadata.content.splitlines() }}'
+
+- name: Collect cloud provider information detailed block device mapping 
+  ansible.builtin.uri: 
+    url: '{{ node_info_metadata_url_block_device_mapping + item }}'
+    return_content: true 
+  loop:
+    '{{ blk_metadata.content.splitlines() }}'
+  register: blk_metadata_details
+
+- name: Generate and store node information 
+  ansible.builtin.template: 
+    src: host-info.md.j2
+    dest: '{{ node_info_output_file }}'
+  become: no
+  delegate_to: 127.0.0.1

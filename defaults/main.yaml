@@ -1,0 +1,11 @@
+---
+node_info_output_path: '{{ playbook_dir }}/output/{{ inventory_hostname }}'
+node_info_output_file: '{{ node_info_output_path }}/host-info.md'
+node_info_metadata_url: 'http://169.254.169.254/latest/meta-data/'
+node_info_metadata_url_block_device_mapping: '{{ node_info_metadata_url }}block-device-mapping/'
+node_info_metadata_url_interfaces: '{{ node_info_metadata_url }}network/interfaces/macs/'
+node_info_ns_files:
+  - /etc/hosts
+  - /etc/resolv.conf
+  - /etc/nsswitch.conf
+
