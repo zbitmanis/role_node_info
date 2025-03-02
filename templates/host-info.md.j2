@@ -1,0 +1,96 @@
+# Information about the node  
+{{ ansible_host }}
+## General node information
+- Node arch:  
+
+  {{ ansible_architecture }}
+- Distribution 
+
+  {{ ansible_distribution }} -  {{ ansible_distribution_version }} 
+
+- Hostname 
+  
+  {{ ansible_hostname }}
+
+- Host FQDN 
+  
+  {{ ansible_fqdn }}
+
+- Node root-device:
+
+  {{ ansible_cmdline.root }}
+
+## Network information
+
+- Network interfaces -  OS level
+
+{% for iface in node_info_interfaces %}
+  {{ iface.iface }} - mac: {{ iface.mac }} ipv4: {{ iface.ipv4 }} active: {{ iface.active }} 
+
+{% endfor %} 
+
+- Network interfaces - Cloud provider
+
+{% for result in iface_metadata.results %}
+  {{ result.item.iface }} - mac: {{ result.item.mac }} ipv4: {{ result.content }} 
+
+{% endfor %} 
+
+## Name resolution related settings 
+
+### NS resolution - OS level 
+
+{% for result in ns_result.results %}
+- {{ result.item }}
+
+```
+>cat {{ result.item }} 
+
+
+{% for line in result.stdout_lines %}
+{{ line }}
+{% endfor %} 
+```
+
+{% endfor %} 
+
+## Block device info
+- Block devices  -  OS level 
+
+```
+>lsblk -af --raw -o +PARTUUID
+
+
+{% for line in blk_result.stdout_lines %}
+{{ line }}
+{% endfor %} 
+```
+- Partitions - OS level
+
+```
+> fdsik -l
+
+{% for line in part_result.stdout_lines %}
+{{ line }}
+{% endfor %} 
+
+```
+- NVMe devices - OS level
+
+```
+> nvme list
+
+{% for line in nvme_result.stdout_lines %}
+{{ line }}
+{% endfor %} 
+
+```
+ 
+ 
+- Block device mapping - Cloud provider
+
+
+{% for result in blk_metadata_details.results %}
+  {{ result.item }} - mapping: {{ result.content }} metadata url : {{ result.url }} 
+
+{% endfor %} 
